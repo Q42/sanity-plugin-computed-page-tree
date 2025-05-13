@@ -41,46 +41,58 @@ export const definePageType = (
   });
 };
 
-const basePageFields = (config: PageTreeConfig, options: Options, ownType: DocumentDefinition) => [
-  ...(!options.isRoot
-    ? [
-        defineField({
-          name: 'slug',
-          title: 'Slug',
-          type: 'slug',
-          options: {
-            source: getSlugSourceField(config, options),
-            isUnique: () => true,
-          },
-          validation: Rule => Rule.required().custom(slugValidator(config)),
-          group: options.fieldsGroupName,
-        }),
-        {
-          name: 'computedSlug',
-          type: 'string',
-          title: 'Link to Page',
-          group: options.fieldsGroupName,
-          components: {
-            input: (props: ComputedSlugInputProps) => ComputedSlugInput({ ...props, config }),
-          },
-        },
-      ]
-    : []),
-  ...(!options.isRoot
-    ? [
-        defineField({
-          name: 'parent',
-          title: 'Parent page',
-          type: 'reference',
-          to: getPossibleParentsFromConfig(config, ownType).map(type => ({ type })),
-          validation: Rule => Rule.required().custom(parentValidator(config, ownType.name)),
-          group: options.fieldsGroupName,
-          components: {
-            field: props => PageTreeField({ ...props, config, mode: 'select-parent' }),
-          },
-        }),
-      ]
-    : []),
-];
+const basePageFields = (config: PageTreeConfig, options: Options, ownType: DocumentDefinition) => {
+  /** Set the slug and computed slug of the home page manually */
+  if (options.isRoot) {
+    return [
+      defineField({
+        name: 'slug',
+        type: 'slug',
+        hidden: true,
+        initialValue: { current: '/' },
+      }),
+      {
+        name: 'computedSlug',
+        type: 'string',
+        hidden: true,
+        initialValue: '/',
+      },
+    ];
+  }
+
+  return [
+    defineField({
+      name: 'slug',
+      title: 'Slug',
+      type: 'slug',
+      options: {
+        source: getSlugSourceField(config, options),
+        isUnique: () => true,
+      },
+      validation: Rule => Rule.required().custom(slugValidator(config)),
+      group: options.fieldsGroupName,
+    }),
+    {
+      name: 'computedSlug',
+      type: 'string',
+      title: 'Link to Page',
+      group: options.fieldsGroupName,
+      components: {
+        input: (props: ComputedSlugInputProps) => ComputedSlugInput({ ...props, config }),
+      },
+    },
+    defineField({
+      name: 'parent',
+      title: 'Parent page',
+      type: 'reference',
+      to: getPossibleParentsFromConfig(config, ownType).map(type => ({ type })),
+      validation: Rule => Rule.required().custom(parentValidator(config, ownType.name)),
+      group: options.fieldsGroupName,
+      components: {
+        field: props => PageTreeField({ ...props, config, mode: 'select-parent' }),
+      },
+    }),
+  ];
+};
 
 const getSlugSourceField = (config: PageTreeConfig, options: Options) => config.titleFieldName ?? options.slugSource;
